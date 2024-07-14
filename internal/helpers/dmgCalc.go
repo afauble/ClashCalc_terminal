@@ -1,27 +1,36 @@
 package helpers
 
-// Delete and replace with appropriate get method
-func getDmgNmbr(level int8) float32 {
-	return float32(level)
-}
+import (
+	"github.com/afauble/ClashCalc/internal/data"
+	"github.com/afauble/ClashCalc/internal/models"
+)
 
-type UserInput struct {
-	giantarrowLvl int8
-	fireballLvl   int8
-	lightningLvl  int8
-	earthquakeLvl int8
-}
-
-func DealLightingDmg(level int8, currentHealth float32) float32 {
-	currentHealth = currentHealth - getDmgNmbr(level)
+func dealLightingDmg(level int8, currentHealth float32) float32 {
+	currentHealth = currentHealth - data.GetLightingDmg(level)
 	if currentHealth > 0 {
 		return currentHealth
 	}
 	return 0
 }
 
-func DealEarthquakeDmg(level int8, currentHealth float32, maxHealth float32, index int) float32 {
-	percentDmg := getDmgNmbr(level) / 100
+func dealFireballDmg(level int8, currentHealth float32) float32 {
+	currentHealth = currentHealth - data.GetFireballDmg(level)
+	if currentHealth > 0 {
+		return currentHealth
+	}
+	return 0
+}
+
+func dealGiantarrowDmg(level int8, currentHealth float32) float32 {
+	currentHealth = currentHealth - data.GetGiantarrowDmg(level)
+	if currentHealth > 0 {
+		return currentHealth
+	}
+	return 0
+}
+
+func dealEarthquakeDmg(level int8, currentHealth float32, maxHealth float32, index int) float32 {
+	percentDmg := data.GetEarthquakeDmg(level) / 100
 	dmg := maxHealth * percentDmg * float32(1/(1+(index*2))) // index is 0 based
 	currentHealth = currentHealth - dmg
 	if currentHealth > 0 {
@@ -31,34 +40,40 @@ func DealEarthquakeDmg(level int8, currentHealth float32, maxHealth float32, ind
 }
 
 // Deals the damage of count # of earthquake spells and returns the remaining health
-func ApplyMultiEq(level int8, currentHealth float32, maxHealth float32, count int) float32 {
+func applyMultiEq(level int8, currentHealth float32, maxHealth float32, count int) float32 {
 	for i := 0; i < count; i++ {
-		currentHealth = DealEarthquakeDmg(level, currentHealth, maxHealth, i)
+		currentHealth = dealEarthquakeDmg(level, currentHealth, maxHealth, i)
 	}
 	return currentHealth
 }
 
-func ApplyMultiLtn(level int8, currentHealth float32) int8 {
+// Determines the # of lightning spells needed to kill at the given health
+func applyMultiLtn(level int8, currentHealth float32) int8 {
 	var count int8 = 0
-	for {
-		if currentHealth < 0 {
-			break
-		}
-		currentHealth = DealLightingDmg(level, currentHealth)
+	for currentHealth > 0 {
+		count++
+		currentHealth = dealLightingDmg(level, currentHealth)
 	}
 	return count
 }
 
-func FindOptimalSpells(maxHealth float32, userInput UserInput) [5]int8 {
+func FindOptimalSpells(maxHealth float32, userInput models.UserInput) [5]int8 {
 	var resultSlice [5]int8
 	var currentHealth float32 = maxHealth
 
-	currentHealth = currentHealth - getDmgNmbr(userInput.giantarrowLvl) // giantarrow
-	currentHealth = currentHealth - getDmgNmbr(userInput.fireballLvl)   // fireball
+	// giantarrow damage
+	if userInput.GiantarrowUsed {
+		currentHealth = dealGiantarrowDmg(userInput.GiantarrowLvl, currentHealth)
+	}
+	// fireball damage
+	if userInput.FireballUsed {
+		currentHealth = dealFireballDmg(userInput.FireballLvl, currentHealth)
+	}
 
+	// calculate zapquake at each quake amount and put in result array
 	for eqUsed := 0; eqUsed < 5; eqUsed++ {
-		currentHealth = ApplyMultiEq(userInput.earthquakeLvl, currentHealth, maxHealth, eqUsed)
-		ltnUsed := ApplyMultiLtn(userInput.lightningLvl, currentHealth)
+		currentHealth = applyMultiEq(userInput.EarthquakeLvl, currentHealth, maxHealth, eqUsed)
+		ltnUsed := applyMultiLtn(userInput.LightningLvl, currentHealth)
 		resultSlice[eqUsed] = ltnUsed
 	}
 
