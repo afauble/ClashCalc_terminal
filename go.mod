@@ -2,15 +2,17 @@ module github.com/afauble/ClashCalc
 
 go 1.21.3
 
-require github.com/charmbracelet/bubbletea v0.26.6
+require (
+	github.com/charmbracelet/bubbletea v0.26.6
+	github.com/charmbracelet/lipgloss v0.11.0
+	github.com/charmbracelet/x/exp/strings v0.0.0-20240617190524-788ec55faed1
+)
 
 require (
 	github.com/atotto/clipboard v0.1.4 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
 	github.com/catppuccin/go v0.2.0 // indirect
 	github.com/charmbracelet/bubbles v0.18.0 // indirect
-	github.com/charmbracelet/lipgloss v0.11.0 // indirect
-	github.com/charmbracelet/x/exp/strings v0.0.0-20240617190524-788ec55faed1 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect

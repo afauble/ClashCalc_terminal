@@ -13,14 +13,54 @@ func CreateTerminalUI() {
 
 	var giantarrowLvlStr string
 	var fireballLvlStr string
+	var lightningLvlStr string
+	var earthquakeLvlStr string
 
 	form := huh.NewForm(
 		huh.NewGroup(
+			huh.NewNote().
+				Title("ClashCalc™").
+				Description("Enter your spell/equipment levels below."),
+
+			huh.NewInput().
+				Value(&lightningLvlStr).
+				Title("Lightning Spell Level").
+				Placeholder("1-11").
+				Validate(func(s string) error {
+					i, err := strconv.Atoi(s)
+					if err != nil {
+						return errors.New("enter a valid level (1-11)")
+					}
+					if i > 11 || i < 0 {
+						return errors.New("enter a valid level (1-11)")
+					}
+					return nil
+				}),
+
+			huh.NewInput().
+				Value(&earthquakeLvlStr).
+				Title("Earthquake Spell Level").
+				Placeholder("1-5").
+				Validate(func(s string) error {
+					i, err := strconv.Atoi(s)
+					if err != nil {
+						return errors.New("enter a valid level (1-5)")
+					}
+					if i > 5 || i < 1 {
+						return errors.New("enter a valid level (1-5)")
+					}
+					return nil
+				}),
+
 			huh.NewInput().
 				Value(&giantarrowLvlStr).
 				Title("Giant Arrow Level").
 				Placeholder("0-18").
 				Validate(func(s string) error {
+					if s == "" {
+						s = "0"
+						return nil
+					}
 					i, err := strconv.Atoi(s)
 					if err != nil {
 						return errors.New("enter a valid level (0-18)")
@@ -29,14 +69,17 @@ func CreateTerminalUI() {
 						return errors.New("enter a valid level (0-18)")
 					}
 					return nil
-				}).
-				Description("Giant Arrow description"),
+				}),
 
 			huh.NewInput().
 				Value(&fireballLvlStr).
 				Title("Fireball Level").
 				Placeholder("0-27").
 				Validate(func(s string) error {
+					if s == "" {
+						s = "0"
+						return nil
+					}
 					i, err := strconv.Atoi(s)
 					if err != nil {
 						return errors.New("enter a valid level (0-27)")
@@ -45,11 +88,10 @@ func CreateTerminalUI() {
 						return errors.New("enter a valid level (0-27)")
 					}
 					return nil
-				}).
-				Description("Fireball description"),
+				}),
 		),
 	)
-
+	form.WithTheme(huh.ThemeBase16())
 	err := form.Run()
 
 	if err != nil {
