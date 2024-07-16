@@ -1,6 +1,10 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/afauble/ClashCalc/internal/frontend"
+)
 
 func main() {
 	fmt.Print(`
@@ -16,4 +20,5 @@ func main() {
 	
 	`)
 
+	frontend.CreateTerminalUI()
 }
