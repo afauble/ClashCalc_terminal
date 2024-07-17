@@ -62,13 +62,10 @@ func FindOptimalSpells(maxHealth float32, userInput models.UserInput) [5]int8 {
 	var currentHealth float32 = maxHealth
 
 	// giantarrow damage
-	if userInput.GiantarrowUsed {
-		currentHealth = dealGiantarrowDmg(userInput.GiantarrowLvl, currentHealth)
-	}
+	currentHealth = dealGiantarrowDmg(userInput.GiantarrowLvl, currentHealth)
+
 	// fireball damage
-	if userInput.FireballUsed {
-		currentHealth = dealFireballDmg(userInput.FireballLvl, currentHealth)
-	}
+	currentHealth = dealFireballDmg(userInput.FireballLvl, currentHealth)
 
 	// calculate zapquake at each quake amount and put in result array
 	for eqUsed := 0; eqUsed < 5; eqUsed++ {
