@@ -125,19 +125,8 @@ func CreateTerminalUI() {
 				).
 				Value(&selectedBuilding),
 			huh.NewInput().
-				Description("Input level for "+selectedBuilding).
+				Description("Input level of building").
 				Value(&selectedBuildingLvl).
-				Validate(func(s string) error {
-					level, err := strconv.Atoi(s)
-					if err != nil {
-						return errors.New("enter a valid building level")
-					}
-					err = data.ValidateLevelValue(selectedBuilding, int8(level))
-					if err != nil {
-						return errors.New("enter a valid building level")
-					}
-					return nil
-				}).
 				PlaceholderFunc(func() string {
 					length := data.GetBuildingArrayLength(selectedBuilding) - 1
 					lengthStr := strconv.Itoa(length)
@@ -152,7 +141,7 @@ func CreateTerminalUI() {
 					calculateBuildings()
 					return resultsStr
 				}, []*string{&selectedBuilding, &selectedBuildingLvl, &lightningLvlStr, &earthquakeLvlStr, &fireballLvlStr, &giantarrowLvlStr}).
-				Height(3),
+				Height(4),
 		),
 		huh.NewGroup(
 			huh.NewNote().

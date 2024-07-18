@@ -30,8 +30,9 @@ func dealGiantarrowDmg(level int8, currentHealth float32) float32 {
 }
 
 func dealEarthquakeDmg(level int8, currentHealth float32, maxHealth float32, index int) float32 {
-	percentDmg := data.GetEarthquakeDmg(level) / 100
-	dmg := maxHealth * percentDmg * float32(1/(1+(index*2))) // index is 0 based
+	var percentDmg float32 = data.GetEarthquakeDmg(level) / 100
+	var modifier float32 = 1.0 / (1.0 + (float32(index) * 2.0))
+	var dmg float32 = maxHealth * percentDmg * modifier // index is 0 based
 	currentHealth = currentHealth - dmg
 	if currentHealth > 0 {
 		return currentHealth
