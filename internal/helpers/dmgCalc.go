@@ -48,31 +48,54 @@ func applyMultiEq(level int8, currentHealth float32, maxHealth float32, count in
 }
 
 // Determines the # of lightning spells needed to kill at the given health
-func applyMultiLtn(level int8, currentHealth float32) int8 {
-	var count int8 = 0
+func applyMultiLtn(level int8, currentHealth float32) int {
+	var count int = 0
 	for currentHealth > 0 {
-		count++
 		currentHealth = dealLightingDmg(level, currentHealth)
+		count++
 	}
 	return count
 }
 
-func FindOptimalSpells(maxHealth float32, userInput models.UserInput) [5]int8 {
-	var resultSlice [5]int8
+func FindOptimalSpells(maxHealth float32, userInput models.UserInput) models.CalcResult {
+	var bestResults models.CalcResult
+	var resultSlice [5]int
 	var currentHealth float32 = maxHealth
+	var lowestSpellCount int = 99
 
 	// giantarrow damage
-	currentHealth = dealGiantarrowDmg(userInput.GiantarrowLvl, currentHealth)
+	if userInput.GiantarrowLvl != 0 {
+		currentHealth = dealGiantarrowDmg(userInput.GiantarrowLvl, currentHealth)
+		bestResults.GiantarrowUsed = true
+	}
 
 	// fireball damage
-	currentHealth = dealFireballDmg(userInput.FireballLvl, currentHealth)
+	if userInput.FireballLvl != 0 {
+		currentHealth = dealFireballDmg(userInput.FireballLvl, currentHealth)
+		bestResults.FireballUsed = true
+	}
 
 	// calculate zapquake at each quake amount and put in result array
 	for eqUsed := 0; eqUsed < 5; eqUsed++ {
-		currentHealth = applyMultiEq(userInput.EarthquakeLvl, currentHealth, maxHealth, eqUsed)
-		ltnUsed := applyMultiLtn(userInput.LightningLvl, currentHealth)
+		tempHealth := currentHealth
+		tempHealth = applyMultiEq(userInput.EarthquakeLvl, tempHealth, maxHealth, eqUsed)
+		ltnUsed := applyMultiLtn(userInput.LightningLvl, tempHealth)
+		if eqUsed+ltnUsed < lowestSpellCount {
+			lowestSpellCount = eqUsed + ltnUsed
+		}
 		resultSlice[eqUsed] = ltnUsed
 	}
 
-	return resultSlice
+	bestResults.ZapQuakeCombos = selectBestCombos(resultSlice, lowestSpellCount)
+	return bestResults
+}
+
+func selectBestCombos(resultSlice [5]int, lowestSpellCount int) map[int]int {
+	var results = make(map[int]int)
+	for eq, lt := range resultSlice {
+		if eq+lt == lowestSpellCount {
+			results[eq] = lt
+		}
+	}
+	return results
 }

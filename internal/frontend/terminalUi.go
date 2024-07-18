@@ -10,16 +10,28 @@ import (
 	"github.com/afauble/ClashCalc/internal/helpers"
 	"github.com/afauble/ClashCalc/internal/models"
 	"github.com/charmbracelet/huh"
-	"github.com/charmbracelet/huh/spinner"
 )
 
+const headerStr string = `
+  /$$$$$$  /$$                     /$$        /$$$$$$           /$$          
+ /$$__  $$| $$                    | $$       /$$__  $$         | $$          
+| $$  \__/| $$  /$$$$$$   /$$$$$$$| $$$$$$$ | $$  \__/ /$$$$$$ | $$  /$$$$$$$
+| $$      | $$ |____  $$ /$$_____/| $$__  $$| $$      |____  $$| $$ /$$_____/
+| $$      | $$  /$$$$$$$|  $$$$$$ | $$  \ $$| $$       /$$$$$$$| $$| $$      
+| $$    $$| $$ /$$__  $$ \____  $$| $$  | $$| $$    $$/$$__  $$| $$| $$      
+|  $$$$$$/| $$|  $$$$$$$ /$$$$$$$/| $$  | $$|  $$$$$$/  $$$$$$$| $$|  $$$$$$$
+\______/ |__/ \_______/|_______/ |__/  |__/ \______/ \_______/|__/ \_______/
+`
+
 var (
-	giantarrowLvlStr  string
-	fireballLvlStr    string
-	lightningLvlStr   string
-	earthquakeLvlStr  string
-	selectedBuildings []string
-	buidlingLevelMap  map[string]string
+	giantarrowLvlStr string
+	fireballLvlStr   string
+	lightningLvlStr  string
+	earthquakeLvlStr string
+
+	selectedBuilding    string
+	selectedBuildingLvl string
+	resultsStr          string
 )
 
 func CreateTerminalUI() {
@@ -28,17 +40,7 @@ func CreateTerminalUI() {
 		// Gather User Input
 		huh.NewGroup(
 			huh.NewNote().
-				Title(`
-
-  /$$$$$$  /$$                     /$$        /$$$$$$           /$$          
- /$$__  $$| $$                    | $$       /$$__  $$         | $$          
-| $$  \__/| $$  /$$$$$$   /$$$$$$$| $$$$$$$ | $$  \__/ /$$$$$$ | $$  /$$$$$$$
-| $$      | $$ |____  $$ /$$_____/| $$__  $$| $$      |____  $$| $$ /$$_____/
-| $$      | $$  /$$$$$$$|  $$$$$$ | $$  \ $$| $$       /$$$$$$$| $$| $$      
-| $$    $$| $$ /$$__  $$ \____  $$| $$  | $$| $$    $$/$$__  $$| $$| $$      
-|  $$$$$$/| $$|  $$$$$$$ /$$$$$$$/| $$  | $$|  $$$$$$/  $$$$$$$| $$|  $$$$$$$
- \______/ |__/ \_______/|_______/ |__/  |__/ \______/ \_______/|__/ \_______/
-	`).
+				Title(headerStr).
 				Description("Enter your spell/equipment levels"),
 
 			huh.NewInput().
@@ -95,19 +97,10 @@ func CreateTerminalUI() {
 		// Selecting buildings to calculate
 		huh.NewGroup(
 			huh.NewNote().
-				Title(`
+				Title(headerStr).
+				Description("Select desired building"),
 
-  /$$$$$$  /$$                     /$$        /$$$$$$           /$$          
- /$$__  $$| $$                    | $$       /$$__  $$         | $$          
-| $$  \__/| $$  /$$$$$$   /$$$$$$$| $$$$$$$ | $$  \__/ /$$$$$$ | $$  /$$$$$$$
-| $$      | $$ |____  $$ /$$_____/| $$__  $$| $$      |____  $$| $$ /$$_____/
-| $$      | $$  /$$$$$$$|  $$$$$$ | $$  \ $$| $$       /$$$$$$$| $$| $$      
-| $$    $$| $$ /$$__  $$ \____  $$| $$  | $$| $$    $$/$$__  $$| $$| $$      
-|  $$$$$$/| $$|  $$$$$$$ /$$$$$$$/| $$  | $$|  $$$$$$/  $$$$$$$| $$|  $$$$$$$
- \______/ |__/ \_______/|_______/ |__/  |__/ \______/ \_______/|__/ \_______/`).
-				Description("Select desired buildings"),
-
-			huh.NewMultiSelect[string]().
+			huh.NewSelect[string]().
 				Title("Buildings").
 				Options(
 					huh.NewOption("Cannon", "cannon"),
@@ -130,14 +123,41 @@ func CreateTerminalUI() {
 					huh.NewOption("Town Hall", "townHall"),
 					huh.NewOption("Clan Castle", "clanCastle"),
 				).
-				Validate(func(t []string) error {
-					if len(t) <= 0 {
-						return fmt.Errorf("at least one building is required")
+				Value(&selectedBuilding),
+			huh.NewInput().
+				Description("Input level for "+selectedBuilding).
+				Value(&selectedBuildingLvl).
+				Validate(func(s string) error {
+					level, err := strconv.Atoi(s)
+					if err != nil {
+						return errors.New("enter a valid building level")
+					}
+					err = data.ValidateLevelValue(selectedBuilding, int8(level))
+					if err != nil {
+						return errors.New("enter a valid building level")
 					}
 					return nil
 				}).
-				Value(&selectedBuildings).
-				Filterable(true),
+				PlaceholderFunc(func() string {
+					length := data.GetBuildingArrayLength(selectedBuilding) - 1
+					lengthStr := strconv.Itoa(length)
+					return "1-" + lengthStr
+				}, &selectedBuilding),
+			huh.NewNote().
+				Title("Results").
+				DescriptionFunc(func() string {
+					if selectedBuildingLvl == "" {
+						return ""
+					}
+					calculateBuildings()
+					return resultsStr
+				}, []*string{&selectedBuilding, &selectedBuildingLvl, &lightningLvlStr, &earthquakeLvlStr, &fireballLvlStr, &giantarrowLvlStr}).
+				Height(3),
+		),
+		huh.NewGroup(
+			huh.NewNote().
+				Title(headerStr).
+				Description("\nPress *enter* to exit.\n*Shift + Tab* to return.\n"),
 		),
 	)
 
@@ -147,36 +167,51 @@ func CreateTerminalUI() {
 		fmt.Println("Uh oh:", err)
 		os.Exit(1)
 	}
-
-	_ = spinner.New().Title("Calculating").Action(calculateBuildings).Run()
-
 }
 
 func calculateBuildings() {
+	var gaLevelInt int
+	var fbLevelInt int
+	var ltLevelInt int
+	var eqLevelInt int
+	var bLevelInt int
 
-	gaLevelInt, _ := strconv.Atoi(giantarrowLvlStr)
-	gaLevel := int8(gaLevelInt)
-	fbLevelInt, _ := strconv.Atoi(fireballLvlStr)
-	fbLevel := int8(fbLevelInt)
-	ltLevelInt, _ := strconv.Atoi(lightningLvlStr)
-	ltLevel := int8(ltLevelInt)
-	eqLevelInt, _ := strconv.Atoi(earthquakeLvlStr)
-	eqLevel := int8(eqLevelInt)
+	// These strings were allowed to be empty
+	// Convert the empty strings to 0
+	if giantarrowLvlStr == "" {
+		gaLevelInt = 0
+	} else {
+		gaLevelInt, _ = strconv.Atoi(giantarrowLvlStr)
+	}
+	if fireballLvlStr == "" {
+		fbLevelInt = 0
+	} else {
+		fbLevelInt, _ = strconv.Atoi(fireballLvlStr)
+	}
 
+	// Convert rest of user input strings
+	ltLevelInt, _ = strconv.Atoi(lightningLvlStr)
+	eqLevelInt, _ = strconv.Atoi(earthquakeLvlStr)
+	bLevelInt, _ = strconv.Atoi(selectedBuildingLvl)
+
+	// Create user input model
 	userInput := models.UserInput{
-		GiantarrowLvl: gaLevel,
-		FireballLvl:   fbLevel,
-		LightningLvl:  ltLevel,
-		EarthquakeLvl: eqLevel,
+		GiantarrowLvl: int8(gaLevelInt),
+		FireballLvl:   int8(fbLevelInt),
+		LightningLvl:  int8(ltLevelInt),
+		EarthquakeLvl: int8(eqLevelInt),
 	}
 
-	for _, b := range selectedBuildings {
-		getHealthFunction := data.GetCorrespondingHealthFunc(b)
-		bLevelInt, _ := strconv.Atoi(buidlingLevelMap[b])
-		bLevel := int8(bLevelInt)
-		bHealth := getHealthFunction(bLevel)
-
-		helpers.FindOptimalSpells(bHealth, userInput)
-
+	// Get building maz health
+	bHealth, err := data.GetBuildingHealth(selectedBuilding, int8(bLevelInt))
+	if err != nil {
+		resultsStr = "*enter a valid building level"
+		return
 	}
+
+	// Call helper method to calculate results
+	selectedBuildingResults := helpers.FindOptimalSpells(bHealth, userInput)
+
+	// Set global variable for huh.form
+	resultsStr = selectedBuildingResults.ToString()
 }
