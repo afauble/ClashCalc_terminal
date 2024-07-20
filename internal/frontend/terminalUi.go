@@ -112,7 +112,7 @@ func CreateTerminalUI() {
 					huh.NewOption("Hidden Tesla", "hiddenTesla"),
 					huh.NewOption("Bomb Tower", "bombTower"),
 					huh.NewOption("XBow", "xBow"),
-					huh.NewOption("InfernoTower", "infernoTower"),
+					huh.NewOption("Inferno Tower", "infernoTower"),
 					huh.NewOption("Eagle Artillery", "eagleArtillery"),
 					huh.NewOption("Scattershot", "scattershot"),
 					huh.NewOption("Builder Hut", "builderHut"),
